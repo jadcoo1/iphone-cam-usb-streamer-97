@@ -25,22 +25,33 @@ try {
   if (fs.existsSync(electronPackageJsonPath)) {
     const electronPackageJson = JSON.parse(fs.readFileSync(electronPackageJsonPath, 'utf8'));
     
-    if (!electronPackageJson.scripts || !electronPackageJson.scripts['electron:pack']) {
+    // Always ensure scripts object exists
+    if (!electronPackageJson.scripts) {
+      electronPackageJson.scripts = {};
+    }
+    
+    // Check if electron:pack script is missing
+    if (!electronPackageJson.scripts['electron:pack']) {
       console.log('Adding missing electron:pack script...');
-      
-      if (!electronPackageJson.scripts) {
-        electronPackageJson.scripts = {};
-      }
       
       electronPackageJson.scripts['electron:pack'] = 'electron-builder';
       electronPackageJson.scripts['electron:build'] = 'npm run build && electron-builder';
       
+      // Write updated package.json
       fs.writeFileSync(electronPackageJsonPath, JSON.stringify(electronPackageJson, null, 2));
       
-      // Install electron-builder if not already installed
+      console.log('Updated electron/package.json with missing scripts');
+    }
+
+    // Install electron-builder if not in dependencies
+    if (!electronPackageJson.devDependencies || !electronPackageJson.devDependencies['electron-builder']) {
       console.log('Installing electron-builder...');
       execSync('cd electron && npm install electron-builder --save-dev', { stdio: 'inherit' });
     }
+
+    // Ensure all electron dependencies are installed
+    console.log('Installing electron dependencies...');
+    execSync('cd electron && npm install', { stdio: 'inherit' });
   }
 
   // Build Electron app
